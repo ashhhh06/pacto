@@ -1,26 +1,20 @@
 {
-  "name": "clause-iq",
-  "version": "0.1.0",
+  "name": "pacto-enterprise",
+  "version": "2.0.0",
   "private": true,
+  "description": "Pacto — AI-Powered Enterprise Contract Intelligence & Business Decision Platform",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "start": "cd server && node index.js",
+    "build": "cd client && npm run build",
+    "postinstall": "cd client && npm install && cd ../server && npm install",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev"
   },
   "dependencies": {
-    "next": "16.2.10",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.10",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "google-auth-library": "^9.15.0",
+    "mongoose": "^8.9.5"
   }
 }
