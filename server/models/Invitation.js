@@ -1,48 +1,47 @@
 const mongoose = require('mongoose');
 
-const userSchema = new mongoose.Schema({
+const invitationSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     lowercase: true,
-    trim: true,
-  },
-  name: {
-    type: String,
-    required: true,
     trim: true,
   },
   organizationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Organization',
-    default: null,
+    required: true,
   },
   workspaceId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Workspace',
-    default: null,
+    required: true,
   },
   role: {
     type: String,
     enum: ['Owner', 'Admin', 'Legal', 'Finance', 'Procurement', 'Sales', 'Viewer'],
-    default: 'Viewer',
+    default: 'Legal',
+  },
+  token: {
+    type: String,
+    required: true,
+    unique: true,
   },
   status: {
     type: String,
-    enum: ['Active', 'Pending', 'Suspended'],
-    default: 'Active',
+    enum: ['Pending', 'Accepted', 'Expired', 'Revoked'],
+    default: 'Pending',
   },
-  avatar: {
-    type: String,
-    default: '',
-  },
-  lastActive: {
+  expiresAt: {
     type: Date,
-    default: Date.now,
+    required: true,
+  },
+  invitedBy: {
+    type: String,
+    default: 'Organization Owner',
   },
 }, {
   timestamps: true,
 });
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = mongoose.model('Invitation', invitationSchema);

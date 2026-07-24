@@ -2,63 +2,52 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   GitCompare, Sparkles, AlertTriangle, ArrowRight, ShieldAlert, 
-  DollarSign, CheckCircle2, Copy, FileText, Check, Plus, Minus, Edit3
+  DollarSign, CheckCircle2, FileText, Edit3, RefreshCw
 } from 'lucide-react';
 
 export default function ContractComparison() {
-  const { contracts } = useApp();
-  const [versionA, setVersionA] = useState('v1');
-  const [versionB, setVersionB] = useState('v2');
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [copiedDraft, setCopiedDraft] = useState(false);
+  const { contracts, token } = useApp();
+  const [selectedContractA, setSelectedContractA] = useState(contracts[0]?.id || '');
+  const [selectedContractB, setSelectedContractB] = useState(contracts[1]?.id || contracts[0]?.id || '');
+  
+  const [textA, setTextA] = useState('Standard Master Services Agreement with 2x liability cap and Net 30 payment terms.');
+  const [textB, setTextB] = useState('Revised Master Services Agreement with uncapped liability, perpetual IP license, and Net 60 payment terms.');
 
-  // Sample Version Differences Data for Acme Master Services Agreement
-  const DIFF_SUMMARY = {
-    addedClauses: [
-      { name: 'Cybersecurity Data Breach Indemnity', impact: 'Adds $1M insurance coverage requirement for cloud incidents.' }
-    ],
-    removedClauses: [
-      { name: 'Early Payment Discount (2%)', impact: 'Client removed the 2% discount incentive for payment within 15 days.' }
-    ],
-    modifiedClauses: [
-      {
-        name: 'Limitation of Liability Cap',
-        oldText: 'Aggregate direct liability is capped at 2x annual contract fees paid.',
-        newText: 'Aggregate direct liability is capped at 5x annual contract fees paid.',
-        changeExplanation: 'Client increased liability cap from 2x to 5x ($2.9M to $7.25M).',
-        whoBenefits: 'Client Benefits Significantly',
-        businessImpact: 'High Financial Exposure Risk. Exceeds standard company playbook cap limit of 2x.'
-      },
-      {
-        name: 'Payment Schedule Terms',
-        oldText: 'Invoices due within 30 days of receipt.',
-        newText: 'Invoices due within 60 days of receipt.',
-        changeExplanation: 'Client extended payment window from Net 30 to Net 60 days.',
-        whoBenefits: 'Client Benefits',
-        businessImpact: 'Negative Cash Flow Impact. Creates a 30-day cash collection delay.'
+  const [comparisonResult, setComparisonResult] = useState(null);
+  const [isComparing, setIsComparing] = useState(false);
+
+  const runComparison = async () => {
+    setIsComparing(true);
+    try {
+      const cA = contracts.find(c => c.id === selectedContractA);
+      const cB = contracts.find(c => c.id === selectedContractB);
+
+      const payloadA = cA?.contentText || textA;
+      const payloadB = cB?.contentText || textB;
+
+      const resp = await fetch('/api/contracts/compare', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          contractA: payloadA,
+          contractB: payloadB,
+          titleA: cA?.title || 'Version 1 (Baseline)',
+          titleB: cB?.title || 'Version 2 (Revised)'
+        })
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        setComparisonResult(data);
       }
-    ],
-    financialVariance: {
-      contractValueA: 1450000,
-      contractValueB: 1450000,
-      netMarginA: 35.8,
-      netMarginB: 31.2,
-      varianceNote: 'Net margin dropped by 4.6% due to extended payment terms and cash holding costs.'
-    },
-    suggestedResponseDraft: `
-Dear Acme Legal Team,
-
-Thank you for returning Version 2 of the Master Services Agreement. After review through our Pacto Contract Intelligence Platform, we have two key commercial and legal counter-proposals:
-
-1. Limitation of Liability (Clause 14): Our company policy caps direct liability at 2x annual fees ($2.9M). We cannot accept the proposed 5x cap. We offer a compromise super-cap of 3x exclusively for verified data breach claims.
-
-2. Payment Schedule (Clause 8): We can agree to Net 45 payment terms (rather than Net 60) if invoices are paid electronically.
-
-Please let us know if we can finalize these adjustments.
-
-Best regards,
-Pacto Legal Operations Team
-`.trim()
+    } catch (err) {
+      console.error('Comparison error:', err);
+    } finally {
+      setIsComparing(false);
+    }
   };
 
   return (
@@ -69,132 +58,147 @@ Pacto Legal Operations Team
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold">
             <GitCompare className="w-3.5 h-3.5" />
-            <span>Feature 6 Showcase • Negotiation Center & Diff Engine</span>
+            <span>Contract Version Comparison</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
-            Contract Version Negotiation Center
+            Contract Version Comparison & Diff
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Compare Contract V1 vs V2 side-by-side to highlight added, removed, and modified clauses, financial variance, and AI counter-proposals.
+            Compare contract versions side-by-side to highlight clause changes, liability cap shifts, risk differences, and business impact summaries.
           </p>
         </div>
+
+        <button
+          onClick={runComparison}
+          disabled={isComparing}
+          className="px-5 py-2.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center space-x-2 self-start sm:self-auto"
+        >
+          <GitCompare className="w-4 h-4" />
+          <span>{isComparing ? 'Comparing Versions...' : 'Run Version Comparison'}</span>
+        </button>
       </div>
 
-      {/* Version Selector Control Bar */}
-      <div className="glass-panel rounded-2xl p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center space-x-3 w-full sm:w-auto">
-          <span className="text-xs font-bold text-slate-500">Base Version (V1):</span>
-          <span className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border text-xs font-mono font-bold text-slate-900 dark:text-slate-100">
-            Acme MSA (Original Draft)
-          </span>
-        </div>
-
-        <GitCompare className="w-5 h-5 text-blue-500 shrink-0 hidden sm:block" />
-
-        <div className="flex items-center space-x-3 w-full sm:w-auto">
-          <span className="text-xs font-bold text-slate-500">Revised Version (V2):</span>
-          <span className="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs font-mono font-bold text-blue-600 dark:text-blue-400">
-            Acme MSA (Client Markups)
-          </span>
-        </div>
-      </div>
-
-      {/* Financial & Liability Variance Summary Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Contract Version Selectors */}
+      <div className="glass-panel rounded-2xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-xl">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">Select Agreements to Compare</h3>
         
-        <div className="p-5 rounded-2xl glass-panel bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-          <span className="text-xs font-semibold text-slate-500">Net Profit Margin Shift</span>
-          <div className="flex items-center space-x-2 font-mono">
-            <span className="text-lg text-slate-400 line-through">{DIFF_SUMMARY.financialVariance.netMarginA}%</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-2xl font-bold text-rose-500">{DIFF_SUMMARY.financialVariance.netMarginB}%</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Version A */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Version A (Baseline Draft)</label>
+            {contracts.length > 0 ? (
+              <select
+                value={selectedContractA}
+                onChange={(e) => setSelectedContractA(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-bold"
+              >
+                {contracts.map(c => (
+                  <option key={c.id} value={c.id}>{c.title} (Risk: {c.riskScore}/100)</option>
+                ))}
+              </select>
+            ) : (
+              <textarea
+                value={textA}
+                onChange={(e) => setTextA(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-mono"
+              />
+            )}
           </div>
-          <span className="text-[10px] text-rose-500 font-semibold">-4.6% Margin Erosion</span>
-        </div>
 
-        <div className="p-5 rounded-2xl glass-panel bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-          <span className="text-xs font-semibold text-slate-500">Liability Cap Escalation</span>
-          <div className="flex items-center space-x-2 font-mono">
-            <span className="text-lg text-slate-400">2x Cap</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-2xl font-bold text-rose-500">5x Cap ($7.25M)</span>
+          {/* Version B */}
+          <div className="space-y-2">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">Version B (Revised Counter-Draft)</label>
+            {contracts.length > 0 ? (
+              <select
+                value={selectedContractB}
+                onChange={(e) => setSelectedContractB(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-bold"
+              >
+                {contracts.map(c => (
+                  <option key={c.id} value={c.id}>{c.title} (Risk: {c.riskScore}/100)</option>
+                ))}
+              </select>
+            ) : (
+              <textarea
+                value={textB}
+                onChange={(e) => setTextB(e.target.value)}
+                rows={3}
+                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-mono"
+              />
+            )}
           </div>
-          <span className="text-[10px] text-rose-500 font-semibold">Exceeds Playbook Ceiling</span>
-        </div>
 
-        <div className="p-5 rounded-2xl glass-panel bg-slate-900 text-white space-y-1">
-          <span className="text-xs font-semibold text-slate-400">Payment Schedule Shift</span>
-          <div className="flex items-center space-x-2 font-mono">
-            <span className="text-lg text-slate-400">Net 30</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-2xl font-bold text-amber-400">Net 60</span>
-          </div>
-          <span className="text-[10px] text-amber-400 font-semibold">+30 Days Cash Delay</span>
         </div>
-
       </div>
 
-      {/* Side-by-Side Clause Diff Engine */}
-      <div className="space-y-4">
-        <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <Edit3 className="w-4 h-4 text-blue-500" />
-          <span>Modified Clauses (Version 1 vs Version 2)</span>
-        </h3>
-
-        {DIFF_SUMMARY.modifiedClauses.map((item, idx) => (
-          <div key={idx} className="glass-panel rounded-3xl p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 shadow-lg">
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white">{item.name}</h4>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500 border border-rose-500/20">
-                {item.whoBenefits}
-              </span>
+      {/* Comparison Results Area */}
+      {comparisonResult ? (
+        <div className="space-y-6">
+          
+          {/* Executive Summary Card */}
+          <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-2">
+            <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400 font-bold text-xs">
+              <Sparkles className="w-4 h-4" />
+              <span>Version Comparison Summary</span>
             </div>
+            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+              {comparisonResult.summary}
+            </p>
+          </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-              <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-1">
-                <span className="text-[10px] text-slate-400 uppercase font-bold block">Version 1 (Original Wording)</span>
-                <p className="text-slate-700 dark:text-slate-300">"{item.oldText}"</p>
-              </div>
-              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-700 dark:text-rose-300 space-y-1">
-                <span className="text-[10px] text-rose-500 uppercase font-bold block">Version 2 (Client Markup)</span>
-                <p>"{item.newText}"</p>
-              </div>
-            </div>
+          {/* Side-by-Side Highlighted Changes */}
+          <div className="space-y-4">
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Edit3 className="w-4 h-4 text-blue-500" />
+              <span>Highlighted Clause & Risk Differences</span>
+            </h3>
 
-            <div className="p-3.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs space-y-1">
-              <span className="font-bold text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> AI Change Analysis & Business Impact
-              </span>
-              <p className="text-slate-700 dark:text-slate-300">{item.changeExplanation} {item.businessImpact}</p>
+            <div className="grid grid-cols-1 gap-4">
+              {comparisonResult.differences?.map((item, idx) => (
+                <div key={idx} className="glass-panel rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-900 dark:text-white">{item.feature}</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                      item.changed ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500'
+                    }`}>
+                      {item.impact}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-mono">
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border space-y-1">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Version A</span>
+                      <p className="text-slate-800 dark:text-slate-200">{item.versionA}</p>
+                    </div>
+                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-300 space-y-1">
+                      <span className="text-[10px] text-blue-500 font-bold uppercase block">Version B</span>
+                      <p>{item.versionB}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* AI Suggested Response Draft */}
-      <div className="glass-panel rounded-3xl p-6 bg-slate-900 text-white space-y-4 border border-slate-800 shadow-2xl">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-blue-400 animate-spin" />
-            <h3 className="text-sm font-bold">Pacto AI Counter-Proposal Response Generator</h3>
-          </div>
+        </div>
+      ) : (
+        <div className="glass-panel rounded-3xl p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3 shadow-xl">
+          <GitCompare className="w-10 h-10 text-blue-500 mx-auto opacity-70" />
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">Run Version Comparison</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            Select two contract versions above and click "Run Version Comparison" to evaluate risk shifts, liability changes, and business impact.
+          </p>
           <button
-            onClick={() => {
-              navigator.clipboard.writeText(DIFF_SUMMARY.suggestedResponseDraft);
-              setCopiedDraft(true);
-              setTimeout(() => setCopiedDraft(false), 2000);
-            }}
-            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5"
+            onClick={runComparison}
+            disabled={isComparing}
+            className="px-6 py-2.5 rounded-xl font-bold text-xs bg-blue-600 text-white shadow-md hover:bg-blue-700"
           >
-            {copiedDraft ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-            <span>{copiedDraft ? 'Copied Response!' : 'Copy Counter-Proposal'}</span>
+            {isComparing ? 'Comparing...' : 'Compare Selected Versions'}
           </button>
         </div>
-
-        <p className="p-4 rounded-xl bg-slate-950 font-mono text-xs text-slate-300 leading-relaxed border border-slate-800 whitespace-pre-wrap">
-          {DIFF_SUMMARY.suggestedResponseDraft}
-        </p>
-      </div>
+      )}
 
     </div>
   );

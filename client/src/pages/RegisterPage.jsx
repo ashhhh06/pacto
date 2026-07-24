@@ -1,29 +1,77 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import { Shield, ArrowRight, CheckCircle2, Building2, User, Lock, Mail } from 'lucide-react';
+import { Shield, ArrowRight, CheckCircle2, Building2, User, Lock, Mail, Users, AlertCircle } from 'lucide-react';
 
 export default function RegisterPage() {
-  const { login } = useApp();
+  const { register } = useApp();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  const inviteToken = searchParams.get('invite');
+  const inviteEmail = searchParams.get('email') || '';
 
   const [step, setStep] = useState(1);
+  const [inviteDetails, setInviteDetails] = useState(null);
+  const [inviteError, setInviteError] = useState('');
+  const [isVerifyingInvite, setIsVerifyingInvite] = useState(Boolean(inviteToken));
+  const [errorMessage, setErrorMessage] = useState('');
+
   const [formData, setFormData] = useState({
-    name: 'Victoria Chen',
-    email: 'victoria.chen@pacto.io',
-    password: '••••••••••••',
-    orgName: 'Pacto Global Enterprise',
-    role: 'General Counsel & VP',
-    teamSize: '50-200'
+    name: '',
+    email: inviteEmail,
+    password: '',
+    orgName: '',
+    role: 'Legal'
   });
 
-  const handleSubmit = (e) => {
+  // Verify invitation token if present in URL
+  useEffect(() => {
+    if (inviteToken) {
+      setIsVerifyingInvite(true);
+      fetch(`/api/auth/verify-invite?token=${inviteToken}`)
+        .then(res => res.json())
+        .then(data => {
+          setIsVerifyingInvite(false);
+          if (data.valid) {
+            setInviteDetails(data);
+            setFormData(prev => ({
+              ...prev,
+              email: data.email || prev.email,
+              role: data.role || 'Legal'
+            }));
+          } else {
+            setInviteError(data.error || 'Invitation is invalid or expired.');
+          }
+        })
+        .catch(err => {
+          setIsVerifyingInvite(false);
+          setInviteError('Failed to verify invitation link.');
+        });
+    }
+  }, [inviteToken]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (step === 1) {
-      setStep(2);
+    setErrorMessage('');
+
+    // If registering via invitation or step 2 completed
+    if (inviteToken || step === 2) {
+      const res = await register({
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+        orgName: formData.orgName,
+        role: formData.role
+      }, inviteToken);
+
+      if (res.success) {
+        navigate('/dashboard');
+      } else {
+        setErrorMessage(res.error || 'Failed to complete registration.');
+      }
     } else {
-      login(formData.email, 'user', formData.name);
-      navigate('/dashboard');
+      setStep(2);
     }
   };
 
@@ -36,9 +84,48 @@ export default function RegisterPage() {
           <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold mx-auto">
             <Shield className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">Start Your Free Pacto Trial</h1>
-          <p className="text-xs text-slate-500">Step {step} of 2 • 14 days full access, no credit card required.</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+            {inviteToken ? 'Accept Organization Invitation' : 'Create Enterprise Account'}
+          </h1>
+          <p className="text-xs text-slate-500">
+            {inviteToken 
+              ? 'Join your team on Pacto Enterprise Platform' 
+              : `Step ${step} of 2 • 14 days full trial, no credit card required.`}
+          </p>
         </div>
+
+        {/* Invitation Verification Status Banner */}
+        {isVerifyingInvite && (
+          <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-600 dark:text-blue-400 flex items-center gap-2">
+            <Shield className="w-4 h-4 animate-spin" />
+            <span>Verifying invitation token...</span>
+          </div>
+        )}
+
+        {inviteError && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{inviteError}</span>
+          </div>
+        )}
+
+        {inviteDetails && (
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-slate-900 dark:text-slate-100 space-y-1">
+            <div className="flex items-center space-x-1.5 font-bold text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Invitation Verified!</span>
+            </div>
+            <p className="text-slate-600 dark:text-slate-300">
+              You are joining <strong className="text-slate-900 dark:text-white">{inviteDetails.orgName}</strong> as <strong className="text-blue-600 dark:text-blue-400">{inviteDetails.role}</strong>.
+            </p>
+          </div>
+        )}
+
+        {errorMessage && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-600 dark:text-red-400">
+            {errorMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {step === 1 ? (
@@ -49,7 +136,8 @@ export default function RegisterPage() {
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs"
+                  placeholder="e.g. Sarah Jenkins"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                   required
                 />
               </div>
@@ -60,7 +148,11 @@ export default function RegisterPage() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs"
+                  placeholder="sarah@yourcompany.com"
+                  readOnly={Boolean(inviteToken && inviteEmail)}
+                  className={`w-full px-3 py-2.5 rounded-xl border text-xs text-slate-900 dark:text-white ${
+                    inviteToken ? 'bg-slate-100 dark:bg-slate-800/60 cursor-not-allowed border-slate-300 dark:border-slate-700' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                  }`}
                   required
                 />
               </div>
@@ -71,7 +163,8 @@ export default function RegisterPage() {
                   type="password"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs font-mono"
+                  placeholder="••••••••••••"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white font-mono"
                   required
                 />
               </div>
@@ -84,7 +177,8 @@ export default function RegisterPage() {
                   type="text"
                   value={formData.orgName}
                   onChange={(e) => setFormData({ ...formData, orgName: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs"
+                  placeholder="e.g. Acme Global Technologies"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                   required
                 />
               </div>
@@ -94,13 +188,15 @@ export default function RegisterPage() {
                 <select
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border text-xs"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
                 >
-                  <option value="General Counsel & VP">Legal / General Counsel</option>
-                  <option value="Procurement Lead">Procurement</option>
-                  <option value="Finance Lead">Finance / CFO</option>
-                  <option value="Sales Operations">Sales Ops</option>
-                  <option value="Founder / CEO">Founder / Executive</option>
+                  <option value="Owner">Owner / Executive</option>
+                  <option value="Admin">Admin</option>
+                  <option value="Legal">Legal Counsel</option>
+                  <option value="Finance">Finance Lead</option>
+                  <option value="Procurement">Procurement Lead</option>
+                  <option value="Sales">Sales Operations</option>
+                  <option value="Viewer">Viewer</option>
                 </select>
               </div>
             </>
@@ -108,15 +204,28 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="w-full py-3 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center space-x-1"
+            disabled={Boolean(inviteToken && !inviteDetails)}
+            className="w-full py-3 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white shadow-md flex items-center justify-center space-x-1 transition-all"
           >
-            <span>{step === 1 ? 'Next: Company Setup' : 'Create Pacto Workspace'}</span>
+            <span>
+              {inviteToken 
+                ? 'Join Organization' 
+                : step === 1 
+                  ? 'Next: Company Setup' 
+                  : 'Create Organization & Workspace'}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
         <p className="text-center text-xs text-slate-500">
-          Already have a Pacto workspace? <Link to="/login" className="text-blue-600 font-bold hover:underline">Sign In</Link>
+          Already have an account?{' '}
+          <Link 
+            to={inviteToken ? `/login?invite=${inviteToken}&email=${encodeURIComponent(formData.email)}` : '/login'} 
+            className="text-blue-600 font-bold hover:underline"
+          >
+            Sign In
+          </Link>
         </p>
 
       </div>

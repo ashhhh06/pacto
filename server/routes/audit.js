@@ -1,11 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const AuditLog = require('../models/AuditLog');
+const { protect } = require('../middleware/auth');
+
+router.use(protect);
 
 // GET all audit logs (sorted newest first)
 router.get('/', async (req, res) => {
   try {
-    const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100);
+    const query = req.user?.organizationId ? { organizationId: req.user.organizationId } : {};
+    const logs = await AuditLog.find(query).sort({ createdAt: -1 }).limit(100);
     return res.json(logs);
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch audit logs' });

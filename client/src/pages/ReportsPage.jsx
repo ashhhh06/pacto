@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 export default function ReportsPage() {
-  const { contracts, activeWorkspace } = useApp();
+  const { user, contracts, activeWorkspace } = useApp();
   const [isExporting, setIsExporting] = useState(false);
 
   const handleExportPDF = () => {
@@ -14,11 +14,17 @@ export default function ReportsPage() {
     setTimeout(() => {
       setIsExporting(false);
       window.print();
-    }, 600);
+    }, 400);
   };
 
   const totalValue = contracts.reduce((a, c) => a + (c.value || 0), 0);
-  const totalProfit = contracts.reduce((a, c) => a + (c.estimatedProfit || 0), 0);
+  const totalRevenue = contracts.reduce((a, c) => a + (c.expectedRevenue || Math.round((c.value || 0) * 0.9)), 0);
+  const totalProfit = contracts.reduce((a, c) => a + (c.estimatedProfit || Math.round((c.value || 0) * 0.35)), 0);
+  const avgMargin = contracts.length > 0
+    ? (contracts.reduce((a, c) => a + (c.profitMargin || 35.5), 0) / contracts.length).toFixed(1)
+    : 35.5;
+
+  const highRiskContracts = contracts.filter(c => (c.riskScore || 0) > 50);
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto print:max-w-none print:p-0">
@@ -28,13 +34,13 @@ export default function ReportsPage() {
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
             <Download className="w-3.5 h-3.5" />
-            <span>Feature 12 Showcase • Executive Reports Generator</span>
+            <span>Executive Board Reporting</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
-            Executive Board Deck Report
+            Executive Summary Report
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Generate printable, exportable reports including Financial Summaries, Risk Analysis, Compliance Status, and Business Insights.
+            Printable and exportable executive summary summarizing financial value, net margins, risk factors, and active obligations.
           </p>
         </div>
 
@@ -44,7 +50,7 @@ export default function ReportsPage() {
           className="px-5 py-2.5 rounded-xl font-bold text-xs bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 transition-all flex items-center space-x-2 self-start sm:self-auto"
         >
           <Printer className="w-4 h-4" />
-          <span>{isExporting ? 'Preparing Report...' : 'Print / Export PDF Report'}</span>
+          <span>{isExporting ? 'Preparing Report...' : 'Print / Export Executive Summary'}</span>
         </button>
       </div>
 
@@ -61,38 +67,38 @@ export default function ReportsPage() {
               <span className="text-xs text-slate-400 font-mono">Executive Intelligence</span>
             </div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white mt-2">
-              Q3 Contract Portfolio Executive Summary
+              Contract Portfolio Executive Summary Report
             </h2>
-            <p className="text-xs text-slate-500">Workspace: {activeWorkspace} • Date: {new Date().toLocaleDateString()}</p>
+            <p className="text-xs text-slate-500">Organization: {user?.organizationName || activeWorkspace} • Generated: {new Date().toLocaleDateString()}</p>
           </div>
 
           <div className="text-right space-y-1">
             <span className="px-3 py-1 rounded-full text-xs font-mono font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20">
-              BOARD READY
+              BOARD APPROVED
             </span>
-            <p className="text-[10px] text-slate-400">Strictly Confidential</p>
+            <p className="text-[10px] text-slate-400">Confidential Document</p>
           </div>
         </div>
 
-        {/* Section 1: Financial Summary */}
+        {/* Section 1: Financial Overview */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-            1. Financial Summary & Profitability
+            1. Financial Overview & Profitability
           </h3>
           <div className="grid grid-cols-3 gap-4 text-xs">
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border space-y-1">
-              <span className="text-[10px] text-slate-400">Total Portfolio Value</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">Total Committed Value</span>
               <p className="text-lg font-bold font-mono text-slate-900 dark:text-white">${totalValue.toLocaleString()}</p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border space-y-1">
-              <span className="text-[10px] text-slate-400">Projected Net Profit</span>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">Projected Net Profit</span>
               <p className="text-lg font-bold font-mono text-emerald-500">${totalProfit.toLocaleString()}</p>
             </div>
 
             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border space-y-1">
-              <span className="text-[10px] text-slate-400">Average Profit Margin</span>
-              <p className="text-lg font-bold font-mono text-cyan-500">35.8%</p>
+              <span className="text-[10px] text-slate-400 font-semibold uppercase">Average Net Margin</span>
+              <p className="text-lg font-bold font-mono text-cyan-500">{avgMargin}%</p>
             </div>
           </div>
         </div>
@@ -100,39 +106,49 @@ export default function ReportsPage() {
         {/* Section 2: Legal Risk Analysis */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-            2. Legal Risk Analysis
+            2. Legal Risk Assessment
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-            The active contract portfolio maintains a healthy <strong>88/100 safety index</strong>. 
-            One agreement (CloudScale Systems) has been flagged for uncapped liability exposure and requires legal remediation before renewal.
+            The active organization portfolio consists of <strong>{contracts.length} agreements</strong>. 
+            {highRiskContracts.length > 0 ? (
+              ` ${highRiskContracts.length} contract(s) have been flagged for high liability risk exposure and require legal review.`
+            ) : (
+              ` Zero high risk items detected across all active agreements.`
+            )}
           </p>
         </div>
 
-        {/* Section 3: Compliance & Playbook Status */}
+        {/* Section 3: Active Contracts List */}
         <div className="space-y-3">
           <h3 className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
-            3. Playbook Compliance Status
+            3. Portfolio Contract Inventory
           </h3>
           <div className="space-y-2 text-xs">
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-              <span>Mandatory Mutual NDA Coverage</span>
-              <span className="font-bold text-emerald-500">100% Compliant</span>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
-              <span>Net 45 Maximum Payment Terms</span>
-              <span className="font-bold text-emerald-500">100% Compliant</span>
-            </div>
+            {contracts.map(c => (
+              <div key={c.id || c._id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border">
+                <div>
+                  <span className="font-bold text-slate-900 dark:text-white">{c.title}</span>
+                  <span className="text-[11px] text-slate-500 block">Owner: {c.owner} • Client: {c.client}</span>
+                </div>
+                <div className="text-right font-mono">
+                  <span className="font-bold text-slate-900 dark:text-white">${c.value?.toLocaleString()}</span>
+                  <span className={`block text-[10px] font-semibold ${c.riskScore > 50 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    Risk: {c.riskScore}/100 ({c.status})
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Section 4: AI Strategic Business Insights */}
+        {/* Section 4: AI Strategic Executive Recommendation */}
         <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-2 text-xs">
           <div className="flex items-center space-x-2">
             <Sparkles className="w-4 h-4 text-blue-500" />
             <span className="font-bold text-blue-600 dark:text-blue-400">Pacto Executive Recommendation</span>
           </div>
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
-            "Prioritize CloudScale vendor renegotiation to cap liability at 1x annual spend. Commercial P&L simulation indicates that converting Net 30 payment schedules to Net 15 with a 1.5% discount would increase net annual cash flow by $140,000."
+            "Maintain current Net 30 payment schedules and enforce standard 2x liability caps on upcoming renewal agreements to preserve portfolio profitability and minimize cash flow latency."
           </p>
         </div>
 

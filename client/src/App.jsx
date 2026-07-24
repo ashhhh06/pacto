@@ -17,6 +17,7 @@ import AboutPage from './pages/AboutPage';
 import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Authenticated Workspace Pages
 import DashboardLayout from './pages/DashboardLayout';
@@ -101,6 +102,9 @@ export default function App() {
                           <Route path="team" element={<TeamWorkspace />} />
                           <Route path="settings" element={<SettingsPage />} />
                         </Route>
+
+                        {/* 404 Fallback Route */}
+                        <Route path="*" element={<NotFoundPage />} />
                       </Routes>
                     </div>
                     <Footer />

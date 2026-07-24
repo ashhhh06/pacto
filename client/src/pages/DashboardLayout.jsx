@@ -6,15 +6,15 @@ import AISearchModal from '../components/AISearchModal';
 import { 
   LayoutDashboard, FileText, Sparkles, SlidersHorizontal, FileCode, BookOpen, 
   GitCompare, ShieldCheck, CheckSquare, Clock, BarChart3, Download, Users, 
-  Settings, Search, Lock, LogOut, ChevronDown, Bell, Building2 
+  Settings, Search, Lock, LogOut, ChevronDown, Bell, Building2, Check
 } from 'lucide-react';
 
 export default function DashboardLayout() {
-  const { user, logout, activeWorkspace, setActiveWorkspace } = useApp();
+  const { user, logout, notifications, markNotificationRead } = useApp();
   const location = useLocation();
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
@@ -28,7 +28,7 @@ export default function DashboardLayout() {
           </div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-white">Pacto Enterprise Authentication Required</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Please sign in to access Pacto Contract Intelligence & Business Decision Engine.
+            Please sign in to access Pacto Contract Intelligence & Enterprise Workspace.
           </p>
           <button
             onClick={() => navigate('/login')}
@@ -78,6 +78,8 @@ export default function DashboardLayout() {
     }
   ];
 
+  const unreadNotifications = notifications.filter(n => !n.read);
+
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       
@@ -85,44 +87,19 @@ export default function DashboardLayout() {
       <aside className="w-64 glass-panel border-r border-slate-200 dark:border-slate-800 hidden lg:flex flex-col justify-between p-4 sticky top-16 h-[calc(100vh-4rem)] overflow-y-auto">
         <div className="space-y-6">
           
-          {/* Workspace Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-              className="w-full p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between text-left hover:border-blue-500/40 transition-all group"
-            >
-              <div className="flex items-center space-x-2.5 truncate">
-                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                  <Building2 className="w-4 h-4" />
-                </div>
-                <div className="flex flex-col truncate">
-                  <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                    {activeWorkspace}
-                  </span>
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400">Enterprise Plan</span>
-                </div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
-            </button>
-
-            {workspaceMenuOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 z-30 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-1.5 space-y-1">
-                {['Pacto Global Inc. (HQ)', 'Pacto EMEA (London)', 'Pacto APAC (Singapore)'].map((ws) => (
-                  <button
-                    key={ws}
-                    onClick={() => {
-                      setActiveWorkspace(ws);
-                      setWorkspaceMenuOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                      activeWorkspace === ws ? 'bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 font-bold' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                    }`}
-                  >
-                    {ws}
-                  </button>
-                ))}
-              </div>
-            )}
+          {/* Organization & Workspace Badge */}
+          <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 flex items-center space-x-2.5 truncate">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm shadow-blue-500/20">
+              <Building2 className="w-4 h-4" />
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                {user.organizationName || 'Enterprise Org'}
+              </span>
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-mono truncate">
+                {user.workspaceName || 'Main Workspace'}
+              </span>
+            </div>
           </div>
 
           {/* Navigation Groups */}
@@ -169,13 +146,13 @@ export default function DashboardLayout() {
         <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2">
           <div className="flex items-center space-x-2.5 px-2 py-1">
             <img
-              src={user.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80'}
+              src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=3b82f6&color=ffffff`}
               alt={user.name}
-              className="w-7 h-7 rounded-full object-cover border border-slate-300 dark:border-slate-700"
+              className="w-8 h-8 rounded-full object-cover border border-slate-300 dark:border-slate-700"
             />
             <div className="flex flex-col truncate">
               <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{user.name}</span>
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{user.role}</span>
+              <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold truncate">{user.role}</span>
             </div>
           </div>
           <button
@@ -206,16 +183,48 @@ export default function DashboardLayout() {
             </kbd>
           </button>
 
-          {/* Quick Actions */}
-          <div className="flex items-center space-x-3">
+          {/* Quick Actions & Notifications Popover */}
+          <div className="flex items-center space-x-3 relative">
             <button
-              onClick={() => setIsSearchOpen(true)}
-              className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 relative"
+              onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
+              className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-all"
               title="Notifications"
             >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500"></span>
+              {unreadNotifications.length > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+              )}
             </button>
+
+            {showNotificationsDropdown && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-4 z-50 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <h4 className="text-xs font-bold text-slate-900 dark:text-white">Organization Notifications</h4>
+                  <span className="text-[10px] font-mono text-blue-500">{notifications.length} Total</span>
+                </div>
+
+                <div className="max-h-64 overflow-y-auto space-y-2">
+                  {notifications.length === 0 ? (
+                    <p className="text-xs text-slate-500 text-center py-4">No notifications yet.</p>
+                  ) : (
+                    notifications.map(n => (
+                      <div key={n._id} className={`p-2.5 rounded-xl border text-xs space-y-1 ${n.read ? 'bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-800 text-slate-500' : 'bg-blue-500/10 border-blue-500/20 text-slate-900 dark:text-slate-100 font-semibold'}`}>
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold">{n.title}</span>
+                          {!n.read && (
+                            <button onClick={() => markNotificationRead(n._id)} className="text-blue-500 hover:text-blue-700">
+                              <Check className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                        <p className="text-[11px] font-normal">{n.message}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
             <Link
               to="/dashboard/builder"
               className="hidden sm:flex px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm shadow-blue-500/20 transition-all items-center space-x-1"

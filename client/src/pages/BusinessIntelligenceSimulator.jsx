@@ -7,28 +7,27 @@ import {
 
 export default function BusinessIntelligenceSimulator() {
   const { contracts } = useApp();
-  const [selectedContractId, setSelectedContractId] = useState(contracts[0]?.id || 'ctr-101');
+  const [selectedContractId, setSelectedContractId] = useState(contracts[0]?.id || null);
 
   const selectedContract = contracts.find(c => c.id === selectedContractId) || contracts[0];
 
-  // Interactive Simulator Sliders & Inputs
-  const [baseValue, setBaseValue] = useState(selectedContract?.value || 1450000);
+  // User-provided Business Inputs
+  const [baseValue, setBaseValue] = useState(selectedContract?.value || 1200000);
   const [discountPercent, setDiscountPercent] = useState(10);
   const [paymentTermsDays, setPaymentTermsDays] = useState(30);
-  const [infraCost, setInfraCost] = useState(420000);
-  const [lateFeePenaltyPercent, setLateFeePenaltyPercent] = useState(1.5);
-  const [liabilityCapMultiplier, setLiabilityCapMultiplier] = useState(2.0);
+  const [infraCost, setInfraCost] = useState(350000);
+  const [supportCost, setSupportCost] = useState(150000);
 
-  // Recalculations Engine
+  // Recalculations Engine (Driven by user inputs)
   const calculatedGrossRevenue = Math.round(baseValue * (1 - discountPercent / 100));
-  const totalCost = Number(infraCost) + 280000; // Infra + Support
-  const netProfit = calculatedGrossRevenue - totalCost;
+  const totalOperationalCost = Number(infraCost) + Number(supportCost);
+  const netProfit = calculatedGrossRevenue - totalOperationalCost;
   const netMargin = calculatedGrossRevenue > 0 ? ((netProfit / calculatedGrossRevenue) * 100).toFixed(1) : '0.0';
-  const roiPercent = totalCost > 0 ? ((netProfit / totalCost) * 100).toFixed(1) : '0.0';
+  const roiPercent = totalOperationalCost > 0 ? ((netProfit / totalOperationalCost) * 100).toFixed(1) : '0.0';
 
-  // Payment Risk & Cash Flow Score
-  const paymentRiskScore = paymentTermsDays === 30 ? 15 : paymentTermsDays === 60 ? 45 : 80;
-  const isCommerciallyBeneficial = netProfit > 0 && Number(netMargin) >= 25 && paymentRiskScore < 60;
+  // Payment Risk & Commercial Approval Decision
+  const paymentRiskScore = paymentTermsDays === 15 ? 10 : paymentTermsDays === 30 ? 20 : paymentTermsDays === 60 ? 55 : 85;
+  const isCommerciallyApproved = netProfit > 0 && Number(netMargin) >= 20 && paymentRiskScore < 60;
 
   const handleContractSelect = (id) => {
     setSelectedContractId(id);
@@ -36,8 +35,9 @@ export default function BusinessIntelligenceSimulator() {
     if (c) {
       setBaseValue(c.value || 1000000);
       setDiscountPercent(10);
-      setPaymentTermsDays(c.paymentTerms?.includes('60') ? 60 : 30);
-      setInfraCost(c.pnlData?.infraCost || 400000);
+      setPaymentTermsDays(30);
+      setInfraCost(Math.round((c.value || 1000000) * 0.3));
+      setSupportCost(Math.round((c.value || 1000000) * 0.1));
     }
   };
 
@@ -49,47 +49,49 @@ export default function BusinessIntelligenceSimulator() {
         <div>
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold">
             <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Pacto Core Differentiator • Features 2 & 3</span>
+            <span>Commercial Business Impact Engine</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1">
             Business Intelligence & P&L Simulator
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            Simulate deal variable changes before signing to evaluate net profit margins, cash flow timeline, and commercial feasibility.
+            Model business inputs (contract value, discounts, operational spend) to evaluate net profit margin, ROI, and cash flow timeline.
           </p>
         </div>
 
         {/* Contract Selector */}
-        <div className="flex items-center space-x-2">
-          <span className="text-xs font-semibold text-slate-500">Target Contract:</span>
-          <select
-            value={selectedContractId}
-            onChange={(e) => handleContractSelect(e.target.value)}
-            className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {contracts.map(c => (
-              <option key={c.id} value={c.id}>{c.title} (${c.value?.toLocaleString()})</option>
-            ))}
-          </select>
-        </div>
+        {contracts.length > 0 && (
+          <div className="flex items-center space-x-2">
+            <span className="text-xs font-semibold text-slate-500">Selected Agreement:</span>
+            <select
+              value={selectedContractId || contracts[0]?.id}
+              onChange={(e) => handleContractSelect(e.target.value)}
+              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {contracts.map(c => (
+                <option key={c.id} value={c.id}>{c.title} (${c.value?.toLocaleString()})</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Simulator Workspace Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left Column: Commercial Variable Sliders (5 Cols) */}
-        <div className="lg:col-span-5 glass-panel rounded-3xl p-6 space-y-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+        {/* Left Column: User Business Input Controls (5 Cols) */}
+        <div className="lg:col-span-5 glass-panel rounded-3xl p-6 space-y-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
             <div className="flex items-center space-x-2">
               <Calculator className="w-4 h-4 text-blue-500" />
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Deal Variable Controls</h3>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">User Business Inputs</h3>
             </div>
             <button
               onClick={() => {
                 setDiscountPercent(10);
                 setPaymentTermsDays(30);
-                setLateFeePenaltyPercent(1.5);
-                setLiabilityCapMultiplier(2.0);
+                setInfraCost(350000);
+                setSupportCost(150000);
               }}
               className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
             >
@@ -97,7 +99,7 @@ export default function BusinessIntelligenceSimulator() {
             </button>
           </div>
 
-          {/* Variable 1: Base Contract Value */}
+          {/* Input 1: Base Contract Value */}
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-slate-700 dark:text-slate-300">Base Contract Value ($)</span>
@@ -107,11 +109,11 @@ export default function BusinessIntelligenceSimulator() {
               type="number"
               value={baseValue}
               onChange={(e) => setBaseValue(Number(e.target.value))}
-              className="w-full px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-slate-100"
+              className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-slate-100"
             />
           </div>
 
-          {/* Variable 2: Discount Percent Slider */}
+          {/* Input 2: Proposed Discount Percent */}
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-slate-700 dark:text-slate-300">Proposed Discount (%)</span>
@@ -127,13 +129,13 @@ export default function BusinessIntelligenceSimulator() {
               className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
             />
             <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-              <span>0% (Standard)</span>
-              <span>15% (Executive Approval)</span>
-              <span>40% (Max)</span>
+              <span>0% (Full Price)</span>
+              <span>15% (Standard Max)</span>
+              <span>40% (Extreme)</span>
             </div>
           </div>
 
-          {/* Variable 3: Payment Terms (Net Days) */}
+          {/* Input 3: Payment Schedule Window (Days) */}
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-semibold">
               <span className="text-slate-700 dark:text-slate-300">Payment Schedule Window</span>
@@ -156,42 +158,23 @@ export default function BusinessIntelligenceSimulator() {
             </div>
           </div>
 
-          {/* Variable 4: Operational Expense Cost */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs font-semibold">
-              <span className="text-slate-700 dark:text-slate-300">Operational & Cloud Infra Cost ($)</span>
-              <span className="font-mono font-bold text-slate-900 dark:text-white">${infraCost.toLocaleString()}</span>
-            </div>
-            <input
-              type="range"
-              min="100000"
-              max="1000000"
-              step="25000"
-              value={infraCost}
-              onChange={(e) => setInfraCost(Number(e.target.value))}
-              className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-            />
-          </div>
-
-          {/* Variable 5: Liability Cap & Late Fee */}
+          {/* Input 4: Operational Spend & Support Expenses */}
           <div className="grid grid-cols-2 gap-3 pt-2">
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-500">Late Fee Interest (%/mo)</label>
+              <label className="text-[11px] font-semibold text-slate-500">Cloud / Infra Spend ($)</label>
               <input
                 type="number"
-                step="0.1"
-                value={lateFeePenaltyPercent}
-                onChange={(e) => setLateFeePenaltyPercent(Number(e.target.value))}
+                value={infraCost}
+                onChange={(e) => setInfraCost(Number(e.target.value))}
                 className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
               />
             </div>
             <div className="space-y-1">
-              <label className="text-[11px] font-semibold text-slate-500">Liability Cap (x Annual)</label>
+              <label className="text-[11px] font-semibold text-slate-500">Support / Ops Cost ($)</label>
               <input
                 type="number"
-                step="0.5"
-                value={liabilityCapMultiplier}
-                onChange={(e) => setLiabilityCapMultiplier(Number(e.target.value))}
+                value={supportCost}
+                onChange={(e) => setSupportCost(Number(e.target.value))}
                 className="w-full px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-mono"
               />
             </div>
@@ -199,19 +182,19 @@ export default function BusinessIntelligenceSimulator() {
 
         </div>
 
-        {/* Right Column: Live Recalculated P&L Dashboard (7 Cols) */}
+        {/* Right Column: Live Recalculated P&L Output (7 Cols) */}
         <div className="lg:col-span-7 space-y-6">
           
           {/* Key Output Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             
             <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-1">
-              <span className="text-xs font-semibold text-slate-500">Expected Gross Revenue</span>
+              <span className="text-xs font-semibold text-slate-500">Calculated Gross Revenue</span>
               <p className="text-2xl font-extrabold font-mono text-blue-600 dark:text-blue-400">
                 ${calculatedGrossRevenue.toLocaleString()}
               </p>
               <span className="text-[10px] text-slate-400 font-mono">
-                Discount Impact: -${(baseValue - calculatedGrossRevenue).toLocaleString()}
+                Discount Concession: -${(baseValue - calculatedGrossRevenue).toLocaleString()}
               </span>
             </div>
 
@@ -224,7 +207,7 @@ export default function BusinessIntelligenceSimulator() {
               }`}>
                 ${netProfit.toLocaleString()}
               </p>
-              <span className="text-[10px] text-slate-400 font-mono">Total Cost: ${totalCost.toLocaleString()}</span>
+              <span className="text-[10px] text-slate-400 font-mono">Total Spend: ${totalOperationalCost.toLocaleString()}</span>
             </div>
 
             <div className="p-5 rounded-2xl bg-slate-900 text-white space-y-1">
@@ -232,55 +215,55 @@ export default function BusinessIntelligenceSimulator() {
               <p className="text-2xl font-extrabold font-mono text-cyan-400">
                 {netMargin}%
               </p>
-              <span className="text-[10px] text-slate-400 font-mono">ROI: {roiPercent}%</span>
+              <span className="text-[10px] text-slate-400 font-mono">Projected ROI: {roiPercent}%</span>
             </div>
 
           </div>
 
-          {/* AI Commercial Recommendation Verdict */}
+          {/* Business Impact Verdict Card */}
           <div className={`p-6 rounded-2xl border space-y-3 ${
-            isCommerciallyBeneficial
+            isCommerciallyApproved
               ? 'bg-emerald-500/10 border-emerald-500/30 text-slate-900 dark:text-slate-100'
               : 'bg-amber-500/10 border-amber-500/30 text-slate-900 dark:text-slate-100'
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
-                <Sparkles className="w-5 h-5 text-blue-500 animate-pulse" />
-                <h4 className="text-sm font-extrabold">Pacto Commercial Intelligence Verdict</h4>
+                <Sparkles className="w-5 h-5 text-blue-500" />
+                <h4 className="text-sm font-extrabold">Commercial Profitability Assessment</h4>
               </div>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold border ${
-                isCommerciallyBeneficial
+                isCommerciallyApproved
                   ? 'bg-emerald-500 text-slate-950 border-emerald-400'
                   : 'bg-amber-500 text-slate-950 border-amber-400'
               }`}>
-                {isCommerciallyBeneficial ? 'COMMERCIALLY APPROVED' : 'NEEDS RE-NEGOTIATION'}
+                {isCommerciallyApproved ? 'COMMERCIALLY VIABLE' : 'NEEDS RE-NEGOTIATION'}
               </span>
             </div>
 
             <p className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
-              {isCommerciallyBeneficial ? (
+              {isCommerciallyApproved ? (
                 <>
-                  Accepting this proposal generates an attractive <strong>{netMargin}% net profit margin</strong> (${netProfit.toLocaleString()} net gain) with manageable Net {paymentTermsDays} cash flow timing.
+                  Based on your inputs, this agreement yields a healthy <strong>{netMargin}% net profit margin</strong> (${netProfit.toLocaleString()} net profit) with manageable Net {paymentTermsDays} cash collection timing.
                 </>
               ) : (
                 <>
-                  WARNING: The proposed {discountPercent}% discount combined with Net {paymentTermsDays} payment terms reduces net profit margin to <strong>{netMargin}%</strong> and introduces payment cash flow lag. Re-negotiate payment terms back to Net 30 or cap discount at 10%.
+                  WARNING: The proposed {discountPercent}% discount combined with Net {paymentTermsDays} payment terms lowers the net profit margin to <strong>{netMargin}%</strong>. Consider capping discount at 10% or requesting Net 30 payment terms.
                 </>
               )}
             </p>
           </div>
 
-          {/* Recalculated Cash Flow Timeline Chart */}
-          <div className="glass-panel rounded-2xl p-6 space-y-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+          {/* Quarterly Cash Flow Timeline */}
+          <div className="glass-panel rounded-2xl p-6 space-y-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl">
             <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Recalculated Quarterly Cash Flow Timeline
+              Calculated Quarterly Cash Flow Breakdown
             </h4>
             <div className="space-y-3">
               {[
-                { period: 'Quarter 1', rev: calculatedGrossRevenue * 0.25, cost: totalCost * 0.25 },
-                { period: 'Quarter 2', rev: calculatedGrossRevenue * 0.25, cost: totalCost * 0.25 },
-                { period: 'Quarter 3', rev: calculatedGrossRevenue * 0.25, cost: totalCost * 0.25 },
-                { period: 'Quarter 4', rev: calculatedGrossRevenue * 0.25, cost: totalCost * 0.25 }
+                { period: 'Quarter 1', rev: calculatedGrossRevenue * 0.25, cost: totalOperationalCost * 0.25 },
+                { period: 'Quarter 2', rev: calculatedGrossRevenue * 0.25, cost: totalOperationalCost * 0.25 },
+                { period: 'Quarter 3', rev: calculatedGrossRevenue * 0.25, cost: totalOperationalCost * 0.25 },
+                { period: 'Quarter 4', rev: calculatedGrossRevenue * 0.25, cost: totalOperationalCost * 0.25 }
               ].map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60">
                   <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{item.period}</span>
